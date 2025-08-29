@@ -102,12 +102,13 @@ def transformer [mx_l][l][v][b][d][h][f] (ids: [l]i64) (ps: Params [mx_l][v][b][
     let ys = foldl block xs (iota b)
     in matmul (layer_norm ys ps.gamma ps.beta) ps.w
 
-entry gen [mx_l][l][v][b][d][h][f] (ids: [l]i64) (ps: Params [mx_l][v][b][d][h][f]) (cnt: i64): []i64 =
-    let gen_token [n] (ids: [n]i64): [n+1]i64 =
-        let ctx = drop (n - (i64.min mx_l n)) ids -- Truncates input if too long.
+entry gen [mx_l][l][v][b][d][h][f] (ids: [l]i64) (ps: Params [mx_l][v][b][d][h][f]) (cnt: i64): [l+cnt]i64 =
+  let gen_token (i: i64) (ids: *[l+cnt]i64): [l+cnt]i64 =
+        let n = l+i
+        let ctx = drop (n - i64.min mx_l n) (take n ids) -- Truncates input if too long.
         let ys = transformer ctx ps
-        in ids ++ [last ys |> argmax]
-    in loop ids for _i < cnt do gen_token ids
+        in ids with [n] = last ys |> argmax
+    in loop ids = ids ++ replicate cnt 0 for i < cnt do gen_token i ids
 
 entry init [mx_l][v][b][d][h][f] (tok_emb: [v][d]f32) (pos_emb: [mx_l][d]f32)
                                  (gamma1s: [b][d]f32) (beta1s: [b][d]f32) (gamma2s: [b][d]f32) (beta2s: [b][d]f32)
