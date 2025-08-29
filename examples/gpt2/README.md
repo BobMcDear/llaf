@@ -12,6 +12,7 @@ This example demonstrates how to invoke llaf from Python to produce text using G
         * Options are `gpt2`, `gpt2-medium`, `gpt2-large`, and `gpt2-xl`.
     * `--cnt`: Number of additional tokens to generate.
     * `--benchmark`: Flag for benchmarking llaf against Hugging Face.
+    * `--dump DIR`: dumps parameters and encoded prompt to the given directory as individual files in the Futhark binary data format.
 
 With the initial prompt of `Once upon a time`, laff can be anywhere from 3x to 10x slower than the Hugging Face implementation of GPT-2 on an RTX 2070 GPU, as seen below. Despite its poor relative performance, the Futhark compiler still does a decent job, especially considering that it's aimed towards general array computations and isn't optimized for deep learning.
 
