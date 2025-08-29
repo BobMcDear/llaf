@@ -6,6 +6,7 @@
 • **[Examples](#examples)**<br>
 • **[Performance](#performance)**<br>
 • **[Training](#training)**<br>
+• **[Acknowledgements](#acknowledgements)**<br>
 • **[Citations](#citations)**<br>
 
 ## Introduction
@@ -66,6 +67,10 @@ Although llaf is intended for LLM inference, adapting it for training would be s
 * `vjp`: Reverse-mode automatic differentiation can be achieved in Futhark using the built-in `vjp` function. Paired up with a loss function, this allows for simple and efficient gradient descent.
 
 These two functionalities are one among several that Futhark shares with [JAX](https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html), which can be classified as a DSL and thus comes with many problems of its own.
+
+## Acknowledgements
+
+Many thanks to [Troels Henriksen](https://github.com/athas) for performance improvements.
 
 ## Citations
 
