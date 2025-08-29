@@ -5,7 +5,7 @@ This example demonstrates how to invoke llaf from Python to produce text using G
 1. Make sure the appropriate OpenCL runtime is installed on your system.
 2. Navigate to this directory.
 3. Install the required dependencies: `pip install -r requirements.txt`.
-4. Convert `llm.fut` into a Python module: `futhark pyopencl --library ../../src/llm.fut -o llm`.
+4. Compile `llm.fut` to a server-mode executable: `futhark cuda --server ../../src/llm.fut -o llm` (or use any other backend you wish, e.g. `opencl` or `hip`).
 5. Run the inference script with your desired prompt: `python main.py "Prompt goes here"`.
     * Arguments:
     * `--name`: GPT-2 variant to use.

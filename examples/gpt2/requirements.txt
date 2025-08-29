@@ -3,3 +3,5 @@ pyopencl
 torch
 transformers
 futhark-data
+futhark-server
+
