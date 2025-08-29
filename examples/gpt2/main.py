@@ -14,8 +14,9 @@ from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 import llm
 from params import save_gpt2
 
+import futhark_data
 
-def main(text: str, name: str = 'gpt2', cnt: int = 20, bench: bool = False) -> None:
+def main(text: str, name: str = 'gpt2', cnt: int = 20, bench: bool = False, dump: str | None = None) -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(script_dir, name + '.npz')
     if not os.path.exists(path):
@@ -26,6 +27,14 @@ def main(text: str, name: str = 'gpt2', cnt: int = 20, bench: bool = False) -> N
     tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
 
     ids = np.array(tokenizer.encode(text), dtype=np.int64)
+
+    if dump is not None:
+        print(f'Writing Futhark data files to {dump}.')
+        os.makedirs(dump, exist_ok=True)
+        for v in ['tok_emb', 'pos_emb', 'gamma1s', 'beta1s', 'gamma2s', 'beta2s', 'w_ins', 'b_ins', 'w_outs', 'b_outs', 'w1s', 'b1s', 'w2s', 'b2s', 'gamma', 'beta', 'w']:
+            futhark_data.dump(params[v], open(f'{dump}/{v}.data', 'wb'), binary=True)
+        futhark_data.dump(ids, open(f'{dump}/ids.data', 'wb'), binary=True)
+
     params = llaf.init(params['tok_emb'], params['pos_emb'],
                        params['gamma1s'], params['beta1s'],
                        params['gamma2s'], params['beta2s'],
@@ -85,6 +94,10 @@ if __name__ == '__main__':
     parser.add_argument('--bench',
                         action='store_true',
                         help='Flag for benchmarking llaf against Hugging Face.')
+    parser.add_argument('--dump',
+                        type=str,
+                        default=None,
+                        help='Dump Futhark-readable data files to this directory.')
 
     args = parser.parse_args()
-    main(args.text, args.name, args.cnt, args.bench)
+    main(args.text, args.name, args.cnt, args.bench, args.dump)

@@ -2,3 +2,4 @@ numpy
 pyopencl
 torch
 transformers
+futhark-data
