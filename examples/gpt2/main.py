@@ -11,10 +11,38 @@ import numpy as np
 import torch
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
-import llm
 from params import save_gpt2
 
 import futhark_data
+import futhark_server
+
+PARAM_NAMES = ['tok_emb', 'pos_emb', 'gamma1s', 'beta1s', 'gamma2s', 'beta2s', 'w_ins', 'b_ins', 'w_outs', 'b_outs', 'w1s', 'b1s', 'w2s', 'b2s', 'gamma', 'beta', 'w']
+
+class LLM:
+    def __init__(self, params):
+        self.server = futhark_server.Server('./llm', '--cache=llm.cache')
+        for v in PARAM_NAMES:
+            self.server.put_value(v, params[v])
+        self.server.cmd_call('init', 'params', *PARAM_NAMES)
+        for v in PARAM_NAMES:
+            self.server.cmd_free(v)
+
+    def __enter__(self):
+        self.server.__enter__()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        return self.server.__exit(type, value, traceback)
+
+    def gen(self, ids, cnt: int):
+        self.server.put_value('ids', ids)
+        self.server.put_value('cnt', np.int64(cnt))
+        self.server.cmd_call('gen', 'out', 'ids', 'params', 'cnt')
+        out = self.server.get_value('out')
+        self.server.cmd_free('out')
+        self.server.cmd_free('ids')
+        self.server.cmd_free('cnt')
+        return out
 
 def main(text: str, name: str = 'gpt2', cnt: int = 20, bench: bool = False, dump: str | None = None) -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,7 +51,6 @@ def main(text: str, name: str = 'gpt2', cnt: int = 20, bench: bool = False, dump
         save_gpt2(name)
     params = np.load(path)
 
-    llaf = llm.llm()
     tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
 
     ids = np.array(tokenizer.encode(text), dtype=np.int64)
@@ -31,27 +58,22 @@ def main(text: str, name: str = 'gpt2', cnt: int = 20, bench: bool = False, dump
     if dump is not None:
         print(f'Writing Futhark data files to {dump}.')
         os.makedirs(dump, exist_ok=True)
-        for v in ['tok_emb', 'pos_emb', 'gamma1s', 'beta1s', 'gamma2s', 'beta2s', 'w_ins', 'b_ins', 'w_outs', 'b_outs', 'w1s', 'b1s', 'w2s', 'b2s', 'gamma', 'beta', 'w']:
+        for v in PARAM_NAMES:
             futhark_data.dump(params[v], open(f'{dump}/{v}.data', 'wb'), binary=True)
         futhark_data.dump(ids, open(f'{dump}/ids.data', 'wb'), binary=True)
 
-    params = llaf.init(params['tok_emb'], params['pos_emb'],
-                       params['gamma1s'], params['beta1s'],
-                       params['gamma2s'], params['beta2s'],
-                       params['w_ins'], params['b_ins'],
-                       params['w_outs'], params['b_outs'],
-                       params['w1s'], params['b1s'],
-                       params['w2s'], params['b2s'],
-                       params['gamma'], params['beta'], params['w'])
-    out = llaf.gen(ids, params, cnt).get()
+    llaf = LLM(params)
+
+    out = llaf.gen(ids, cnt)
+
     print('Output:', tokenizer.decode(out.tolist()))
 
     if bench:
         for _ in range(5):
-            _ = llaf.gen(ids, params, cnt).get()
+            _ = llaf.gen(ids, cnt)
 
         start = time.time()
-        _ = llaf.gen(ids, params, cnt).get()
+        _ = llaf.gen(ids, cnt)
         end = time.time()
         print(f'\nllaf time: {end - start:.3f} s')
 
