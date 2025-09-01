@@ -1,7 +1,6 @@
+futhark-data
+futhark-server
 numpy
 pyopencl
 torch
 transformers
-futhark-data
-futhark-server
-
